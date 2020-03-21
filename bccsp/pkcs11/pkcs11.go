@@ -54,7 +54,6 @@ func loadLib(lib, pin, label string) (*pkcs11.Ctx, uint, *pkcs11.SessionHandle, 
 		return nil, slot, nil, fmt.Errorf("Could not find token with label %s", label)
 	}
 
-	var session pkcs11.SessionHandle
 	for i := 0; i < 10; i++ {
 		session, err = ctx.OpenSession(slot, pkcs11.CKF_SERIAL_SESSION|pkcs11.CKF_RW_SESSION)
 		if err != nil {
@@ -81,25 +80,37 @@ func loadLib(lib, pin, label string) (*pkcs11.Ctx, uint, *pkcs11.SessionHandle, 
 	return ctx, slot, &session, nil
 }
 
-func (csp *impl) getSession() (session pkcs11.SessionHandle) {
-	select {
-	case session = <-csp.sessions:
-		info, err := csp.ctx.GetSessionInfo(session)
-		if err != nil {
-			logger.Errorf("Get session info failed [%s], getting new session", err)
-			session = csp.createSession()
-		} else {
-			if info.State == uint(0) {
-				logger.Errorf("State is 0, getting new session", err)
-				session = csp.createSession()
-			}
-		}
-
-		logger.Debugf("Session info: %+v\n", info)
-	default:
-		logger.Debug("Getting new session")
-		session = csp.createSession()
+func (csp *impl) fillSessions() (session pkcs11.SessionHandle) {
+	if i := len(csp.sessions); i < 10; i++ {
+		logger.Debugf("Generating session %d", i)
+		session := csp.createSession()
+		csp.returnSession(session)
+		
 	}
+	logger.Deubugf("Total Sessions: %d", len(csp.sessions))
+}
+
+
+func (csp *impl) getSession() (session pkcs11.SessionHandle) {
+	// select {
+	// case session = <-csp.sessions:
+	session = <-csp.sessions:
+	info, err := csp.ctx.GetSessionInfo(session)
+	if err != nil {
+		logger.Errorf("Get session info failed [%s], getting new session", err)
+		session = csp.createSession()
+	} else {
+		if info.State == uint(0) {
+			logger.Errorf("State is 0, getting new session", err)
+			session = csp.createSession()
+		}
+	}
+
+	logger.Debugf("Session info: %+v\n", info)
+		// default:
+		// 	logger.Debug("Getting new session")
+		// 	session = csp.createSession()
+	// }
 
 	return session
 }
