@@ -131,7 +131,7 @@ func (csp *impl) createSession() pkcs11.SessionHandle {
 	if err != nil {
 		panic(fmt.Errorf("OpenSession failed [%s]", err))
 	}
-	logger.Debugf("Created new pkcs11 session %+v on slot %d\n", s, csp.slot)
+	logger.Errorf("Created new pkcs11 session %+v on slot %d\n", s, csp.slot)
 	session := s
 
 	logger.Debug("Logging in...")
