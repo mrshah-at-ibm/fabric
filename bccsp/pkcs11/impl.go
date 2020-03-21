@@ -21,7 +21,7 @@ import (
 
 var (
 	logger           = flogging.MustGetLogger("bccsp_p11")
-	sessionCacheSize = 10
+	sessionCacheSize = 20
 )
 
 // New WithParams returns a new instance of the software-based BCCSP

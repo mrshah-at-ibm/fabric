@@ -81,7 +81,7 @@ func loadLib(lib, pin, label string) (*pkcs11.Ctx, uint, *pkcs11.SessionHandle, 
 }
 
 func (csp *impl) fillSessions() (session pkcs11.SessionHandle) {
-	if i := len(csp.sessions); i < 10; i++ {
+	if i := len(csp.sessions); i < 20; i++ {
 		logger.Debugf("Generating session %d", i)
 		session := csp.createSession()
 		csp.returnSession(session)
@@ -98,10 +98,12 @@ func (csp *impl) getSession() (session pkcs11.SessionHandle) {
 	info, err := csp.ctx.GetSessionInfo(session)
 	if err != nil {
 		logger.Errorf("Get session info failed [%s], getting new session", err)
+		csp.ctx.CloseSession(session)
 		session = csp.createSession()
 	} else {
 		if info.State == uint(0) {
 			logger.Errorf("State is 0, getting new session", err)
+			csp.ctx.CloseSession(session)
 			session = csp.createSession()
 		}
 	}
@@ -441,8 +443,6 @@ func findKeyPairFromSKI(mod *pkcs11.Ctx, session pkcs11.SessionHandle, ski []byt
 	if keyType == privateKeyFlag {
 		ktype = pkcs11.CKO_PRIVATE_KEY
 	}
-
-	fmt.Println("!!SK >>>> SKI: ", string(ski))
 
 	template := []*pkcs11.Attribute{
 		pkcs11.NewAttribute(pkcs11.CKA_CLASS, ktype),
