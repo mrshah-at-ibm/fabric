@@ -94,7 +94,10 @@ func (csp *impl) fillSessions() {
 func (csp *impl) getSession() (session pkcs11.SessionHandle) {
 	// select {
 	// case session = <-csp.sessions:
+
+	logger.Error("Getting new session")
 	session = <-csp.sessions
+	csp.ctx.CloseSession(session)
 	info, err := csp.ctx.GetSessionInfo(session)
 	if err != nil {
 		logger.Errorf("Get session info failed [%s], getting new session", err)
@@ -108,7 +111,7 @@ func (csp *impl) getSession() (session pkcs11.SessionHandle) {
 		}
 	}
 
-	logger.Debugf("Session info: %+v\n", info)
+	logger.Errorf("Session info: %+v\n", info)
 	// default:
 	// 	logger.Debug("Getting new session")
 	// 	session = csp.createSession()
@@ -149,7 +152,7 @@ func (csp *impl) returnSession(session pkcs11.SessionHandle, fromfunc string) {
 	select {
 	case csp.sessions <- session:
 		fmt.Printf("!!SK >>> return session back to cache: %s\n", fromfunc)
-		// returned session back to session cache
+	// returned session back to session cache
 	default:
 		fmt.Println("!!SK >>> closing cache: %s\n", fromfunc)
 		// have plenty of sessions in cache, dropping
