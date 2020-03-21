@@ -56,7 +56,7 @@ func New(opts PKCS11Opts, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 	sessions := make(chan pkcs11.SessionHandle, sessionCacheSize)
 	csp := &impl{swCSP, conf, keyStore, ctx, sessions, slot, lib, opts.SoftVerify, opts.Immutable, pin}
 	csp.fillSessions()
-	csp.returnSession(*session)
+	csp.returnSession(*session, "impl.New")
 	return csp, nil
 }
 

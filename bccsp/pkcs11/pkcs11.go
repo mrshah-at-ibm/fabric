@@ -85,7 +85,7 @@ func (csp *impl) fillSessions() {
 	for i := len(csp.sessions); i < 5; i++ {
 		logger.Debugf("Generating session %d", i)
 		session := csp.createSession()
-		csp.returnSession(session)
+		csp.returnSession(session, "fillSessions")
 
 	}
 	logger.Debugf("Total Sessions: %d", len(csp.sessions))
@@ -145,13 +145,13 @@ func (csp *impl) createSession() pkcs11.SessionHandle {
 	return session
 }
 
-func (csp *impl) returnSession(session pkcs11.SessionHandle) {
+func (csp *impl) returnSession(session pkcs11.SessionHandle, fromfunc string) {
 	select {
 	case csp.sessions <- session:
-		fmt.Println("!!SK >>> return session back to cache")
+		fmt.Printf("!!SK >>> return session back to cache: %s\n", fromfunc)
 		// returned session back to session cache
 	default:
-		fmt.Println("!!SK >>> closing cache")
+		fmt.Println("!!SK >>> closing cache: %s\n", fromfunc)
 		// have plenty of sessions in cache, dropping
 		csp.ctx.CloseSession(session)
 	}
@@ -162,7 +162,7 @@ func (csp *impl) returnSession(session pkcs11.SessionHandle) {
 func (csp *impl) getECKey(ski []byte) (pubKey *ecdsa.PublicKey, isPriv bool, err error) {
 	p11lib := csp.ctx
 	session := csp.getSession()
-	defer csp.returnSession(session)
+	defer csp.returnSession(session, "getECKey")
 	isPriv = true
 	_, err = findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
@@ -253,7 +253,7 @@ func oidFromNamedCurve(curve elliptic.Curve) (asn1.ObjectIdentifier, bool) {
 func (csp *impl) generateECKey(curve asn1.ObjectIdentifier, ephemeral bool) (ski []byte, pubKey *ecdsa.PublicKey, err error) {
 	p11lib := csp.ctx
 	session := csp.getSession()
-	defer csp.returnSession(session)
+	defer csp.returnSession(session, "generateECKey")
 
 	id := nextIDCtr()
 	publabel := fmt.Sprintf("BCPUB%s", id.Text(16))
@@ -370,7 +370,7 @@ func (csp *impl) generateECKey(curve asn1.ObjectIdentifier, ephemeral bool) (ski
 func (csp *impl) signP11ECDSA(ski []byte, msg []byte) (R, S *big.Int, err error) {
 	p11lib := csp.ctx
 	session := csp.getSession()
-	defer csp.returnSession(session)
+	defer csp.returnSession(session, "signP11ECDSA")
 
 	privateKey, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
@@ -400,7 +400,7 @@ func (csp *impl) signP11ECDSA(ski []byte, msg []byte) (R, S *big.Int, err error)
 func (csp *impl) verifyP11ECDSA(ski []byte, msg []byte, R, S *big.Int, byteSize int) (bool, error) {
 	p11lib := csp.ctx
 	session := csp.getSession()
-	defer csp.returnSession(session)
+	defer csp.returnSession(session, "verifyP11ECDSA")
 
 	logger.Debugf("Verify ECDSA\n")
 
@@ -579,7 +579,7 @@ func listAttrs(p11lib *pkcs11.Ctx, session pkcs11.SessionHandle, obj pkcs11.Obje
 func (csp *impl) getSecretValue(ski []byte) []byte {
 	p11lib := csp.ctx
 	session := csp.getSession()
-	defer csp.returnSession(session)
+	defer csp.returnSession(session, "getSecretValue")
 
 	keyHandle, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
