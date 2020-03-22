@@ -377,11 +377,23 @@ func (csp *impl) signP11ECDSA(ski []byte, msg []byte) (R, S *big.Int, err error)
 
 	privateKey, err := findKeyPairFromSKI(p11lib, session, ski, privateKeyFlag)
 	if err != nil {
+		info, err1 := csp.ctx.GetSessionInfo(session)
+		if err1 != nil {
+			logger.Errorf("Sign-initialize failed. Session info: %+v, Get Session err: %s, Original error: %s", info, err1.Error(), err.Error())
+		} else {
+			logger.Errorf("Sign-initialize failed. Session info: %+v, NO GET SESSION ERROR, Original error: %s", info, err.Error())
+		}
 		return nil, nil, fmt.Errorf("Private key not found [%s]", err)
 	}
 
 	err = p11lib.SignInit(session, []*pkcs11.Mechanism{pkcs11.NewMechanism(pkcs11.CKM_ECDSA, nil)}, *privateKey)
 	if err != nil {
+		info, err1 := csp.ctx.GetSessionInfo(session)
+		if err1 != nil {
+			logger.Errorf("Sign-initialize failed. Session info: %+v, Get Session err: %s, Original error: %s", info, err1.Error(), err.Error())
+		} else {
+			logger.Errorf("Sign-initialize failed. Session info: %+v, NO GET SESSION ERROR, Original error: %s", info, err.Error())
+		}
 		return nil, nil, fmt.Errorf("Sign-initialize  failed [%s]", err)
 	}
 
